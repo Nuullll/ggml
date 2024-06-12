@@ -560,6 +560,54 @@ if (GGML_VULKAN)
     endif()
 endif()
 
+if (GGML_SYCL)
+    if (NOT DEFINED ENV{ONEAPI_ROOT})
+        message(FATAL_ERROR "Not detect ENV {ONEAPI_ROOT}, please install oneAPI & source it, like: source /opt/intel/oneapi/setvars.sh")
+    endif()
+
+    find_package(IntelSYCL REQUIRED)
+    find_package(MKL REQUIRED)
+
+    message(STATUS "SYCL found")
+
+    set(GGML_EXTRA_FLAGS ${GGML_EXTRA_FLAGS} -DGGML_USE_SYCL)
+
+    if (GGML_SYCL_F16)
+        add_compile_definitions(GGML_SYCL_F16)
+    endif()
+
+    if (GGML_CUDA_FORCE_MMQ)
+        add_compile_definitions(GGML_SYCL_FORCE_MMQ)
+    endif()
+
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -O3 -Wno-narrowing")
+
+    if (NOT GGML_SYCL_TARGET MATCHES "^(INTEL|NVIDIA)$")
+        message(FATAL_ERROR "Invalid backend chosen, supported options are INTEL or NVIDIA")
+    endif()
+
+    if (GGML_SYCL_TARGET MATCHES "NVIDIA")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl-targets=nvptx64-nvidia-cuda")
+    endif()
+    #todo: AOT
+
+    set(GGML_HEADERS_SYCL ggml-sycl.h)
+    file(GLOB GGML_SOURCES_SYCL "ggml-sycl/*.cpp")
+    list(APPEND GGML_SOURCES_SYCL "ggml-sycl.cpp")
+    set(GGML_EXTRA_INCS ${GGML_EXTRA_INCS} ${SYCL_INCLUDE_DIR})
+
+    if (WIN32)
+        set(GGML_EXTRA_LIBS ${GGML_EXTRA_LIBS} -fsycl MKL::MKL MKL::MKL_SYCL)
+    else()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L${MKLROOT}/lib")
+        if (GGML_SYCL_TARGET MATCHES "INTEL")
+            set(GGML_EXTRA_LIBS ${GGML_EXTRA_LIBS} -fsycl OpenCL mkl_core pthread m dl mkl_sycl_blas mkl_intel_ilp64 mkl_tbb_thread)
+        elseif (GGML_SYCL_TARGET MATCHES "NVIDIA")
+            set(GGML_EXTRA_LIBS ${GGML_EXTRA_LIBS} -fsycl pthread m dl onemkl)
+        endif()
+    endif()
+endif()
+
 if (GGML_PERF)
     set(GGML_EXTRA_FLAGS ${GGML_EXTRA_FLAGS} -DGGML_PERF)
 endif()
@@ -578,6 +626,7 @@ add_library(${TARGET}
     ${GGML_SOURCES_METAL} ${GGML_HEADERS_METAL}
     ${GGML_SOURCES_RPC}   ${GGML_HEADERS_RPC}
     ${GGML_SOURCES_BLAS}  ${GGML_HEADERS_BLAS}
+    ${GGML_SOURCES_SYCL}  ${GGML_HEADERS_SYCL}
     )
 
 target_include_directories(${TARGET} PUBLIC
