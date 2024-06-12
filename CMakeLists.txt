@@ -51,6 +51,8 @@ option(GGML_METAL_SHADER_DEBUG      "ggml: compile Metal with -fno-fast-math" OF
 option(GGML_METAL_EMBED_LIBRARY     "ggml: embed Metal library"               OFF)
 option(GGML_RPC                     "ggml: use RPC"                           OFF)
 option(GGML_VULKAN                  "ggml: use Vulkan"                        OFF)
+option(GGML_SYCL                    "ggml: use SYCL"                          OFF)
+set(GGML_SYCL_TARGET   "INTEL" CACHE STRING "ggml: sycl target device")
 
 option(GGML_CUDA_FORCE_DMMV                 "ggml: use dmmv instead of mmvq CUDA kernels"     OFF)
 option(GGML_CUDA_FORCE_MMQ                  "ggml: use mmq kernels instead of cuBLAS"         OFF)
@@ -172,7 +174,11 @@ endif()
 # dependencies
 
 set(CMAKE_C_STANDARD   11)
-set(CMAKE_CXX_STANDARD 11)
+if (GGML_SYCL)
+    set(CMAKE_CXX_STANDARD 17)
+else()
+    set(CMAKE_CXX_STANDARD 11)
+endif()
 
 find_package(Threads REQUIRED)
 
