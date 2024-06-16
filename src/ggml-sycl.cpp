@@ -38,6 +38,8 @@
 
 #include "ggml-sycl/backend.hpp"
 
+#include "ggml-sycl/tsembd.h"
+
 /*
 Following definition copied from DPCT head files, which are used by ggml-sycl.cpp
 */
@@ -11288,6 +11290,11 @@ static void ggml_sycl_pad(ggml_backend_sycl_context & ctx, const ggml_tensor * s
     GGML_SYCL_DEBUG("call %s done\n", __func__);
 }
 
+static void ggml_sycl_timestep_embedding(ggml_backend_sycl_context & ctd, const ggml_tensor * src0, const ggml_tensor * src1, ggml_tensor * dst) {
+    GGML_SYCL_DEBUG("call %s\n", __func__);
+    ggml_sycl_op_flatten(ctd, src0, src1, dst, ggml_sycl_op_timestep_embedding);
+    GGML_SYCL_DEBUG("call %s done\n", __func__);
+}
 
 static void ggml_sycl_rms_norm(ggml_backend_sycl_context & ctx, const ggml_tensor * src0, const ggml_tensor * src1, ggml_tensor * dst) {
     GGML_SYCL_DEBUG("call %s\n", __func__);
@@ -12073,6 +12080,9 @@ bool ggml_sycl_compute_forward(ggml_backend_sycl_context & ctx, struct ggml_tens
             break;
         case GGML_OP_PAD:
             func = ggml_sycl_pad;
+            break;
+        case GGML_OP_TIMESTEP_EMBEDDING:
+            func = ggml_sycl_timestep_embedding;
             break;
         case GGML_OP_LEAKY_RELU:
             func = ggml_sycl_leaky_relu;

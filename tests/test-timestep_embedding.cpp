@@ -10,6 +10,10 @@
 #include "ggml-metal.h"
 #endif
 
+#ifdef GGML_USE_SYCL
+#include "ggml-sycl.h"
+#endif
+
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,7 +46,7 @@ void set_timestep_embedding(struct ggml_tensor* timesteps, struct ggml_tensor* e
 }
 
 static bool equalsf(float v1, float v2) {
-    if (fabs(v1 - v2) <= 0.00001) {
+    if (fabs(v1 - v2) <= 0.0001) {
         return true;
     }
     return false;
@@ -112,6 +116,16 @@ int main(int argc, const char** argv) {
             backend = ggml_backend_metal_init();
             if (!backend) {
                 fprintf(stderr, "%s: ggml_backend_metal_init() failed\n", __func__);
+            }
+        }
+        #endif
+
+        #ifdef GGML_USE_SYCL
+        if (use_gpu) {
+            fprintf(stderr, "%s: using SYCL backend\n", __func__);
+            backend = ggml_backend_sycl_init(0);
+            if (!backend) {
+                fprintf(stderr, "%s: ggml_backend_sycl_init() failed\n", __func__);
             }
         }
         #endif
